@@ -117,7 +117,7 @@
     if (cur) line.push(`دورتك الحالية: ${cycleText(cur.rotation.cycle, 'ar').replace(/↔/g, 'ثم')}.`);
     line.push(`الخيار الأنسب لأولوياتك: ${cycleText(best.rotation.cycle, 'ar').replace(/↔/g, 'ثم')}.`);
     if (dl) { const y = String(dl.season).split('/'); line.push(`خامس أجفّ موسم من ${dl.n_seasons} موسم كان موسم ${y[0]}، ونزل فيه ${Math.round(dl.rain_mm)} ملم مطر.`); }
-    if (best.dry) line.push(best.dry.pass ? 'هذا الخيار بيصمد بسنة الجفاف.' : 'هذا الخيار ما بيصمد بسنة الجفاف.');
+    if (best.dry) line.push(best.dry.pass ? 'بسنة الجفاف، المطر بيكفي كل محاصيل هذا الخيار.' : 'بسنة الجفاف، المطر أقل من الحد الأدنى لمحصول من هذا الخيار.');
     line.push(`مدى ثقتنا: ${confidence(best)[1].replace('—', '،')}.`);
     if (parts.length) line.push('عن أجزاء أرضك: ' + parts.join(' '));
     line.push('هذه أفكار للنقاش وليست توصية. إنت أدرى بأرضك، فاعتبرها دليل مش قاعدة.');

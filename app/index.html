@@ -215,7 +215,7 @@ textarea.sum{width:100%;min-height:140px;font:13.5px/1.5 ui-monospace,monospace;
       <div class="row"><span>دورتك الحالية</span><b id="arCurrent">—</b></div>
       <div class="row"><span>الخيار الأنسب لأولوياتك</span><b id="arBest">—</b></div>
       <div class="row"><span>سنة الجفاف (خامس أجفّ موسم)</span><b id="arDrySeason">—</b></div>
-      <div class="row"><span>هل يصمد الخيار في سنة الجفاف؟</span><b id="arBestDry">—</b></div>
+      <div class="row"><span>هل المطر يكفي محاصيل الخيار في سنة الجفاف؟</span><b id="arBestDry">—</b></div>
       <div class="row"><span>مدى ثقتنا</span><b id="arSure">—</b></div>
       <p style="margin-top:12px">⚠️ هذه أفكار للنقاش وليست توصية. أنت أدرى بأرضك، فاعتبرها دليلاً لا قاعدة.</p>
     </div>
@@ -402,7 +402,7 @@ function renderCards() {
       <div class="pass ${r.filter.pass ? 'ok' : 'no'}">Crop-family rule · قاعدة العائلة: ${r.filter.pass ? 'pass ✓' : 'breaks it ✗'}</div>
       <div class="scores">${bars}
         <div class="srow tot"><span><b>Overall for your priority</b></span>${isNum(r.total) ? `<span class="v">${Math.round(r.total * 100)}${r.notScored.length ? `<span class="partial">partial · ${4 - r.notScored.length} of 4 scored</span>` : ''}</span>` : `<span class="ns">not scored</span>`}</div></div>
-      <div class="pass ${r.dry ? (r.dry.pass ? 'ok' : 'no') : ''}">Dry season ${r.dry ? esc(r.dry.season) : ''} · سنة الجفاف: ${r.dry ? (r.dry.pass ? 'holds up ✓' : 'fails ✗ (' + esc(r.dry.failing.join(', ')) + ')') : 'not checked yet'}</div>
+      <div class="pass ${r.dry ? (r.dry.pass ? 'ok' : 'no') : ''}">Dry season ${r.dry ? esc(r.dry.season) : ''} · سنة الجفاف: ${r.dry ? (r.dry.pass ? 'enough rain for every crop ✓' : 'below a crop\'s minimum rain ✗ (' + esc(r.dry.failing.join(', ')) + ')') : 'not checked yet'}</div>
       <div class="sure">How sure are we? · مدى ثقتنا: ${esc(sure)}</div>
       <details open><summary>Why, evidence, and what to check</summary>
         <h4>Why it's here</h4><p>${esc(t.why)}</p>
@@ -422,7 +422,7 @@ function renderArabic() {
   set('arSure', confidence(best)[1]);
   set('arSay', best ? (best.rotation.card_ar || '[جملة رنا للبطاقة — لم تُضف بعد]') : DASH);
   set('enSay', best ? (best.rotation.card_en || "[Rana's card sentence — not added yet]") : DASH);
-  set('enRows', best ? `Current: ${cycleText(cur.rotation.cycle, 'en')} · Best for your priority: ${cycleText(best.rotation.cycle, 'en')} · Dry season ${dl ? dl.season : DASH}: ${best.dry ? (best.dry.pass ? 'holds up' : 'fails') : 'not checked'} · Confidence: ${confidence(best)[0]}` : DASH);
+  set('enRows', best ? `Current: ${cycleText(cur.rotation.cycle, 'en')} · Best for your priority: ${cycleText(best.rotation.cycle, 'en')} · Dry season ${dl ? dl.season : DASH}: ${best.dry ? (best.dry.pass ? 'rain above every crop\'s minimum' : 'rain below a crop\'s minimum') : 'not checked'} · Confidence: ${confidence(best)[0]}` : DASH);
 }
 
 function renderSteps() {
