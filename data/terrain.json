@@ -1,0 +1,127 @@
+{
+ "generated": "2026-11-14T11:11",
+ "point": {
+  "name": "jenin_plain",
+  "lat": 32.4293,
+  "lon": 35.2225,
+  "elev_m": 231.0
+ },
+ "source": "NASA SRTM v3 (SRTMGL1_NC.003), ~30 m pixels, whole-metre heights, acquired Feb 2000",
+ "file": "ardi-jenin-SRTMGL1-NC-003-results.csv",
+ "n_points": 14,
+ "n_pixels": 13,
+ "extent_m": {
+  "east_west": 480,
+  "north_south": 480
+ },
+ "elev_min_m": 230.0,
+ "elev_max_m": 235.0,
+ "elev_range_m": 5.0,
+ "tilt": {
+  "gradient_pct": 0.7,
+  "downhill_bearing_deg": 303,
+  "downhill_toward": "north-west",
+  "fit_residual_sd_m": 1.3
+ },
+ "points": [
+  {
+   "id": "m-1-1",
+   "x_m": -240,
+   "y_m": -240,
+   "elev_m": 234.0,
+   "rel_m": 3.0
+  },
+  {
+   "id": "m-10",
+   "x_m": 0,
+   "y_m": -240,
+   "elev_m": 235.0,
+   "rel_m": 4.0
+  },
+  {
+   "id": "m-11",
+   "x_m": 240,
+   "y_m": -240,
+   "elev_m": 235.0,
+   "rel_m": 4.0
+  },
+  {
+   "id": "m0-1",
+   "x_m": -240,
+   "y_m": 0,
+   "elev_m": 231.0,
+   "rel_m": 0.0
+  },
+  {
+   "id": "m00",
+   "x_m": 0,
+   "y_m": 0,
+   "elev_m": 231.0,
+   "rel_m": 0.0
+  },
+  {
+   "id": "m01",
+   "x_m": 240,
+   "y_m": 0,
+   "elev_m": 234.0,
+   "rel_m": 3.0
+  },
+  {
+   "id": "m1-1",
+   "x_m": -240,
+   "y_m": 240,
+   "elev_m": 231.0,
+   "rel_m": 0.0
+  },
+  {
+   "id": "m10",
+   "x_m": 0,
+   "y_m": 240,
+   "elev_m": 233.0,
+   "rel_m": 2.0
+  },
+  {
+   "id": "m11",
+   "x_m": 240,
+   "y_m": 240,
+   "elev_m": 235.0,
+   "rel_m": 4.0
+  },
+  {
+   "id": "E",
+   "x_m": 90,
+   "y_m": 0,
+   "elev_m": 234.0,
+   "rel_m": 3.0
+  },
+  {
+   "id": "N",
+   "x_m": 0,
+   "y_m": 89,
+   "elev_m": 232.0,
+   "rel_m": 1.0
+  },
+  {
+   "id": "S",
+   "x_m": 0,
+   "y_m": -89,
+   "elev_m": 235.0,
+   "rel_m": 4.0
+  },
+  {
+   "id": "W",
+   "x_m": -90,
+   "y_m": 0,
+   "elev_m": 230.0,
+   "rel_m": -1.0
+  },
+  {
+   "id": "center",
+   "x_m": 0,
+   "y_m": 0,
+   "elev_m": 231.0,
+   "rel_m": 0.0
+  }
+ ],
+ "limit": "SRTM pixels are ~30 m and heights are whole metres with a vertical error of a few metres. This shows the gentle tilt of the area; it cannot show a dip, a stony edge or weak margins inside one plot."
+}
