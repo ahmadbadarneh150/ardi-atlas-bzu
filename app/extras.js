@@ -8,7 +8,7 @@
       The notes are general agronomy, tagged "from you" + "check locally". Satellites cannot see inside one plot.
    Depends on globals from index.html: $, S, esc, set, fmt, isNum, cycleText, cropName, loadJSON, confidence. */
 (function () {
-  const X = { parts: new Set(), terrain: null, speaking: false };
+  const X = { parts: new Set(), terrain: null, speaking: false, token: 0 };
 
   /* ---------------- PARTS OF YOUR LAND ---------------- */
   const PARTS = [
@@ -47,8 +47,18 @@
         <span class="ic" aria-hidden="true">${p.ic}</span><span class="t">${p.en}</span><span class="ar" lang="ar">${p.ar}</span></button>`).join('');
     box.querySelectorAll('[data-part]').forEach(b => b.onclick = () => {
       X.parts.has(b.dataset.part) ? X.parts.delete(b.dataset.part) : X.parts.add(b.dataset.part);
-      drawPartTiles(); drawNotes();
+      drawPartTiles(); drawNotes(); drawStatus();
     });
+    drawStatus();
+  }
+  function drawStatus() {
+    const box = document.getElementById('partTiles'); if (!box) return;
+    let s = document.getElementById('partsStatus');
+    if (!s) { s = document.createElement('p'); s.id = 'partsStatus'; s.className = 'small'; s.setAttribute('aria-live', 'polite'); box.insertAdjacentElement('afterend', s); }
+    const sel = PARTS.filter(p => X.parts.has(p.id));
+    s.innerHTML = sel.length
+      ? `<b>✓ Added to your card:</b> ${sel.map(p => p.en).join(', ')}. The notes show on your options (step 3) and on your card (step 4), and Listen reads them. <span class="ar" lang="ar">تمت الإضافة. الملاحظات بتظهر بالخيارات وبالبطاقة.</span>`
+      : '';
   }
   function drawTerrain() {
     const box = document.getElementById('terrainBox'), t = X.terrain; if (!box) return;
@@ -92,7 +102,11 @@
 
   /* ---------------- LISTEN (Arabic read-out) ---------------- */
   const synth = window.speechSynthesis;
-  function arVoice() { return synth ? synth.getVoices().find(v => /^ar\b/i.test(v.lang)) || null : null; }
+  function arVoice() {
+    if (!synth) return null;
+    const all = synth.getVoices().filter(v => /^ar([-_]|$)/i.test(v.lang || ''));
+    return all.find(v => v.localService) || all[0] || null;
+  }
   function spokenCard() {
     const R = S.ranked || [], cur = R[0], best = R[1], dl = S.data && S.data.dry_line;
     if (!best) return '';
@@ -120,13 +134,29 @@
   function setBtn() { const b = document.getElementById('listenBtn'); if (b) b.textContent = X.speaking ? '⏹ إيقاف · Stop' : '🔊 اسمع البطاقة · Listen'; }
   function toggleSpeak() {
     if (!synth) return;
-    if (X.speaking) { synth.cancel(); X.speaking = false; setBtn(); return; }
+    if (X.speaking) { X.token++; synth.cancel(); X.speaking = false; setBtn(); return; }
     const text = spokenCard(), msg = document.getElementById('listenMsg'); if (!text) return;
-    const u = new SpeechSynthesisUtterance(text), v = arVoice();
-    u.lang = v ? v.lang : 'ar-SA'; if (v) u.voice = v; u.rate = 0.9;
-    msg.textContent = v ? '' : 'No Arabic voice found on this device; it may read poorly or stay silent. Most phones have one. · ما في صوت عربي على هذا الجهاز.';
-    u.onend = u.onerror = () => { X.speaking = false; setBtn(); };
-    synth.cancel(); synth.speak(u); X.speaking = true; setBtn();
+    const v = arVoice();
+    msg.textContent = v ? '' : 'No Arabic voice found on this device; it may read poorly or stay silent. In your phone settings, add an Arabic text-to-speech voice. · ما في صوت عربي على هذا الجهاز.';
+    // short pieces: phones often drop or cut one long utterance
+    const chunks = (text.match(/[^.؟!:]+[.؟!:]?/g) || [text]).map(s => s.trim()).filter(Boolean);
+    let i = 0, token = ++X.token;
+    X.speaking = true; setBtn();
+    const next = () => {
+      if (token !== X.token || i >= chunks.length) { if (token === X.token) { X.speaking = false; setBtn(); } return; }
+      const u = new SpeechSynthesisUtterance(chunks[i++]);
+      u.lang = v ? v.lang : 'ar-SA'; if (v) u.voice = v; u.rate = 0.9;
+      u.onend = next;
+      u.onerror = e => {
+        if (token !== X.token) return;
+        X.speaking = false; setBtn();
+        if (e && e.error && e.error !== 'canceled' && e.error !== 'interrupted') msg.textContent = 'The phone did not play the sound (' + e.error + '). Check the volume and that Arabic text-to-speech is installed. · الصوت ما اشتغل، تأكد من الصوت.';
+      };
+      synth.speak(u);
+      if (synth.paused) synth.resume();
+    };
+    // keep the first speak() inside the tap (phones require it); cancel a stuck queue first
+    if (synth.speaking || synth.pending) { synth.cancel(); setTimeout(next, 120); } else next();
   }
   window.ArdiExtras = { spokenCard, PARTS, state: X };
 
@@ -141,7 +171,16 @@
   document.head.appendChild(css);
 
   const _rf = window.renderField, _ra = window.renderArabic;
-  if (typeof _rf === 'function') window.renderField = function () { _rf.apply(this, arguments); fieldBlock(); };
+  function mapLink() {
+    try {
+      const p = (S.data && S.data.point) || {}, box = document.getElementById('mapBox');
+      if (!box || !isFinite(p.lat) || !isFinite(p.lon) || document.getElementById('mapLink')) return;
+      const a = document.createElement('p'); a.id = 'mapLink'; a.className = 'src';
+      a.innerHTML = 'Map blank? <a href="https://www.openstreetmap.org/?mlat=' + p.lat + '&mlon=' + p.lon + '#map=13/' + p.lat + '/' + p.lon + '" target="_blank" rel="noopener">Open the pilot point in OpenStreetMap</a> · <span lang="ar">الخريطة فارغة؟ افتحها من الرابط</span>';
+      box.appendChild(a);
+    } catch (e) { /* the map is optional */ }
+  }
+  if (typeof _rf === 'function') window.renderField = function () { _rf.apply(this, arguments); fieldBlock(); mapLink(); };
   if (typeof _ra === 'function') window.renderArabic = function () { _ra.apply(this, arguments); listenBlock(); drawNotes(); };
   if (synth && synth.onvoiceschanged !== undefined) synth.onvoiceschanged = () => {};
   (async () => { try { X.terrain = await loadJSON('terrain.json'); } catch (e) { X.terrain = null; } fieldBlock(); drawTerrain(); listenBlock(); drawNotes(); })();
