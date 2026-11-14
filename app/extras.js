@@ -128,14 +128,17 @@
     const bar = document.createElement('div'); bar.id = 'listenBar'; bar.className = 'listenbar'; bar.dir = 'rtl';
     bar.innerHTML = `<button class="btn" type="button" id="listenBtn" aria-live="polite">🔊 اسمع البطاقة · Listen</button><span class="small" id="listenMsg"></span>`;
     card.parentNode.insertBefore(bar, card);
-    document.getElementById('listenBtn').onclick = toggleSpeak;
+    document.getElementById('listenBtn').onclick = () => toggleSpeak();
     if (!synth) { document.getElementById('listenBtn').disabled = true; document.getElementById('listenMsg').textContent = 'This browser can\'t read aloud. · هذا المتصفح لا يدعم القراءة الصوتية.'; }
   }
-  function setBtn() { const b = document.getElementById('listenBtn'); if (b) b.textContent = X.speaking ? '⏹ إيقاف · Stop' : '🔊 اسمع البطاقة · Listen'; }
-  function toggleSpeak() {
+  function setBtn() {
+    const b = document.getElementById('listenBtn'); if (b) b.textContent = X.speaking ? '⏹ إيقاف · Stop' : '🔊 اسمع البطاقة · Listen';
+    const n = document.getElementById('narBtn'); if (n) n.textContent = X.speaking ? '⏹ إيقاف · Stop' : '🔊 اسمع هذه الشاشة · Listen to this screen';
+  }
+  function toggleSpeak(textArg) {
     if (!synth) return;
     if (X.speaking) { X.token++; synth.cancel(); X.speaking = false; setBtn(); return; }
-    const text = spokenCard(), msg = document.getElementById('listenMsg'); if (!text) return;
+    const text = (typeof textArg === 'string' && textArg) || spokenCard(), msg = document.getElementById(typeof textArg === 'string' ? 'narMsg' : 'listenMsg') || document.getElementById('listenMsg'); if (!text) return;
     const v = arVoice();
     msg.textContent = v ? '' : 'No Arabic voice found on this device; it may read poorly or stay silent. In your phone settings, add an Arabic text-to-speech voice. · ما في صوت عربي على هذا الجهاز.';
     // short pieces: phones often drop or cut one long utterance
@@ -158,7 +161,61 @@
     // keep the first speak() inside the tap (phones require it); cancel a stuck queue first
     if (synth.speaking || synth.pending) { synth.cancel(); setTimeout(next, 120); } else next();
   }
-  window.ArdiExtras = { spokenCard, PARTS, state: X };
+
+  /* ---------------- NARRATOR: reads every screen aloud, for farmers who prefer to listen ---------------- */
+  const PRESET_AR = { water: 'توفير الماء', soil: 'التربة أولاً', income: 'الدخل', balanced: 'متوازن' };
+  const avgOf = a => { a = a.filter(isNum); return a.length ? a.reduce((x, y) => x + y, 0) / a.length : null; };
+  const cyc = r => cycleText(r.rotation.cycle, 'ar').replace(/↔/g, 'ثم');
+  function narrationFor(step) {
+    const d = S.data || {}, seasons = (d.seasons || []).filter(s => isNum(s.rain_mm)), dl = d.dry_line;
+    if (step === 1) {
+      const parts = PARTS.filter(p => X.parts.has(p.id)).map(p => p.say_ar).join(' ');
+      return 'أهلاً فيك في أرضي. هاي أداة بتساعدك تقارن دورات الزراعة قبل ما تقرر. الخريطة بتوري منطقة سهل جنين، مش قطعتك بالضبط. اختار الدورة الأقرب للي بتزرعه هالأيام: قمح كل سنة، أو قمح وعدس، أو شعير وكرسنة. وإذا في جزء بأرضك مختلف، متل طرف عالي أو مكان واطي، اضغط عليه. ' + (parts ? 'اخترت: ' + parts + ' ' : '') + 'بعدين اضغط التالي.';
+    }
+    if (step === 2) {
+      const mean = avgOf(seasons.map(s => s.rain_mm)), heat = avgOf((d.seasons || []).map(s => s.heat_days_mam));
+      const y0 = seasons.length ? String(seasons[0].season).split('/')[0] : '', y1 = seasons.length ? String(seasons[seasons.length - 1].season).split('/')[1] : '';
+      const l = [];
+      l.push('هاي اللي رصدته ناسا بمنطقتك.');
+      if (seasons.length && isNum(mean)) l.push(`من ${seasons.length} موسم، معدل المطر بالموسم حوالي ${Math.round(mean)} ملم.`);
+      if (dl) l.push(`سنة الجفاف اللي بنجرّب عليها هي موسم ${String(dl.season).split('/')[0]}، ونزل فيه ${Math.round(dl.rain_mm)} ملم بس. هذا خامس أجفّ موسم من ${dl.n_seasons} موسم.`);
+      if (isNum(heat)) l.push(`وبالربيع، بمعدل ${Math.round(heat)} أيام بالموسم بتزيد فيها الحرارة عن 32 درجة.`);
+      l.push('هاي معلومات عن المنطقة، مش عن قطعتك. بعدين اضغط خياراتي.');
+      return l.join(' ');
+    }
+    if (step === 3) {
+      const R = (S.ranked || []).filter(r => r && r.rotation);
+      if (!R.length) return '';
+      const sc = r => isNum(r.total) ? `علامتها ${Math.round(r.total * 100)} من مية` : 'ما انحسبت علامتها';
+      const l = ['عندك ثلاث خيارات.'];
+      const cur = R[0], alts = R.slice(1);
+      l.push(`الأول دورتك الحالية: ${cyc(cur)}، ${sc(cur)}.`);
+      alts.forEach((r, i) => l.push(`${i === 0 ? 'الخيار الأنسب' : 'والخيار التاني'}: ${cyc(r)}، ${sc(r)}.`));
+      l.push(`اللي مختارينه هسا هو: ${PRESET_AR[S.preset] || ''}. إذا غيّرت اللي بهمك، بتتغير العلامات.`);
+      l.push('العلامات من صفر لمية، وهي مؤشرات مش توقّع للمحصول. بعدين اضغط بطاقة المزارع.');
+      return l.join(' ');
+    }
+    return spokenCard();
+  }
+  const userGesture = () => !(navigator.userActivation) || navigator.userActivation.isActive;
+  function narratorBar() {
+    const nav = document.getElementById('steps'); if (!nav || document.getElementById('narBar')) return;
+    const bar = document.createElement('div'); bar.id = 'narBar'; bar.className = 'narbar'; bar.dir = 'rtl';
+    bar.innerHTML = '<button class="btn narbtn" type="button" id="narBtn" aria-live="polite">🔊 اسمع هذه الشاشة · Listen to this screen</button><label class="narauto"><input type="checkbox" id="narAuto" checked> قراءة تلقائية · Auto-read</label><span class="small" id="narMsg"></span>';
+    nav.parentNode.insertBefore(bar, nav.nextSibling);
+    document.getElementById('narBtn').onclick = () => toggleSpeak(narrationFor(S.step));
+  }
+  const _go = window.go;
+  if (typeof _go === 'function') window.go = function (n) {
+    const wasOn = X.speaking; if (wasOn) { X.token++; if (synth) synth.cancel(); X.speaking = false; setBtn(); }
+    const r = _go.apply(this, arguments);
+    try {
+      const auto = document.getElementById('narAuto');
+      if (auto && auto.checked && synth && userGesture()) toggleSpeak(narrationFor(n));
+    } catch (e) { /* narrator is optional */ }
+    return r;
+  };
+  window.ArdiExtras = { spokenCard, narrationFor, PARTS, state: X };
 
   /* ---------------- wiring ---------------- */
   const css = document.createElement('style');
@@ -167,7 +224,7 @@
     .tmap .tv{font:700 10.5px Inter,sans-serif;fill:#fff}
     .partsnotes{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}.pnote{background:var(--surface-2);border-radius:12px;padding:10px 12px;margin-top:8px}
     .pnote p{font-size:14.5px;color:var(--ink-2)}.ptag{font-size:11.5px;font-weight:700;border-radius:999px;padding:2px 9px;background:var(--leaf-2);color:var(--leaf);margin-inline-start:6px}
-    .ptag.warn{background:#fff0cc;color:#6b4a00}.listenbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}`;
+    .ptag.warn{background:#fff0cc;color:#6b4a00}.narbar{position:sticky;top:0;z-index:20;display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--surface-2,#f6f1e6);border:2px solid var(--leaf,#3f6b3a);border-radius:14px;padding:10px 12px;margin:10px 0}.narbtn{font-size:20px;padding:14px 20px}.narauto{font-size:14px;display:flex;gap:6px;align-items:center}.listenbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}`;
   document.head.appendChild(css);
 
   const _rf = window.renderField, _ra = window.renderArabic;
@@ -183,7 +240,7 @@
   if (typeof _rf === 'function') window.renderField = function () { _rf.apply(this, arguments); fieldBlock(); mapLink(); };
   if (typeof _ra === 'function') window.renderArabic = function () { _ra.apply(this, arguments); listenBlock(); drawNotes(); };
   if (synth && synth.onvoiceschanged !== undefined) synth.onvoiceschanged = () => {};
-  (async () => { try { X.terrain = await loadJSON('terrain.json'); } catch (e) { X.terrain = null; } fieldBlock(); drawTerrain(); listenBlock(); drawNotes(); })();
+  (async () => { try { X.terrain = await loadJSON('terrain.json'); } catch (e) { X.terrain = null; } fieldBlock(); drawTerrain(); listenBlock(); drawNotes(); narratorBar(); })();
 })();
 
 /* ---- Honesty notes (added after the council review). Everything is computed from ardi_data.json + crops.json. ---- */
